@@ -64,10 +64,10 @@ router.get('/:prodId', function(req, res) {
         ])
         .filter({ 'p.id': prodId })
         .get()
-        .then(prod => {
-            if (prod) {
+        .then(data => {
+            if (data) {
                 res.status(200).json({
-                    prod
+                    data
                 });
             } else {
                 res.json({ message: `No product found with product id ${prodId}` });

@@ -39,7 +39,7 @@ router.get('/', function(req, res, next) {
 
 /* GET SINGGE ORDER  */
 router.get('/:id', (req, res) => {
-    const orderId = req.params.id
+    const orderId = req.params.id;
 
     database.table('orders_details as od')
         .join([{
@@ -55,7 +55,7 @@ router.get('/:id', (req, res) => {
                 on: 'u.id = o.user_id'
             }
         ])
-        .withFields(['o.id', 'p.title as name', 'p.description', 'p.price', 'u.username'])
+        .withFields(['o.id', 'p.title', 'p.description', 'p.price', 'p.image', 'od.quantity as quantityOrdered'])
         .filter({ 'o.id': orderId })
         .getAll()
         .then(orders => {
@@ -71,22 +71,24 @@ router.get('/:id', (req, res) => {
 router.post('/new', (req, res) => {
 
     let { userId, products } = req.body;
+    console.log(userId);
+    console.log(products);
 
-    console.log({ userId, products });
     if (userId !== null && userId > 0 && !isNaN(userId)) {
         database.table('orders')
             .insert({
                 user_id: userId,
-            }).then(newOrderId => {
-                if (newOrderId > 0) {
-                    products.forEach(async(p) => {
+            }).then((newOrderId) => {
+
+                if (newOrderId.insertId  > 0) {
+                    products.forEach(async (p) => {
                         let data = await database.table('products').filter({ id: p.id }).withFields(['quantity']).get();
-                        let inCart = p.inCart;
+                        let inCart = parseInt(p.incart);
 
                         if (data.quantity > 0) {
                             data.quantity = data.quantity - inCart;
                             if (data.quantity < 0) {
-                                data.quantity == 0;
+                                data.quantity = 0;
                             }
                         } else {
                             data.quantity = 0
@@ -94,7 +96,7 @@ router.post('/new', (req, res) => {
 
                         database.table('orders_details')
                             .insert({
-                                order_id: newOrderId,
+                                order_id: newOrderId.insertId,
                                 product_id: p.id,
                                 quantity: inCart,
                             }).then(newId => {
@@ -110,13 +112,14 @@ router.post('/new', (req, res) => {
                     res.json({ message: 'new order failed while adding order details', sucsses: false })
                 }
                 res.json({
-                    message: `Order succsessfully placed with order id ${newOrderId}`,
+                    message: `Order succsessfully placed with order id ${newOrderId.insertId}`,
                     sucsses: true,
-                    order_id: newOrderId,
+                    order_id: newOrderId.insertId,
                     products: products,
                 })
             }).catch(err => console.log(err))
-    } else {
+    }
+    else {
         res.json({ message: 'new order failed', sucsses: false })
     }
 
